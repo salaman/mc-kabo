@@ -28,6 +28,7 @@ public class WorldServer extends World
     private int updateEntityTick;
     private final Teleporter field_85177_Q;
     private final SpawnerAnimals field_135059_Q = new SpawnerAnimals();
+    private KaboVillageMarkerServer villageMarkerServer = new KaboVillageMarkerServer(this);
 
     /**
      * Double buffer of ServerBlockEventList[] for holding pending BlockEventData's
@@ -136,12 +137,22 @@ public class WorldServer extends World
         this.theProfiler.endStartSection("chunkMap");
         this.thePlayerManager.updatePlayerInstances();
         this.theProfiler.endStartSection("village");
-        this.villageCollectionObj.tick();
+        this.villageCollectionObj.tick(this.villageMarkerServer);
         this.villageSiegeObj.tick();
         this.theProfiler.endStartSection("portalForcer");
         this.field_85177_Q.removeStalePortalLocations(this.getTotalWorldTime());
         this.theProfiler.endSection();
         this.sendAndApplyBlockEvents();
+
+        if (this.worldInfo.getWorldTotalTime() % 400L == 0L)
+        {
+            this.villageMarkerServer.flagForUpdate();
+        }
+
+        if (this.villageMarkerServer.needsUpdate())
+        {
+            this.villageMarkerServer.updateClients();
+        }
     }
 
     /**
@@ -204,20 +215,18 @@ public class WorldServer extends World
         if (this.allPlayersSleeping && !this.isRemote)
         {
             Iterator var1 = this.playerEntities.iterator();
-            EntityPlayer var2;
 
-            do
+            while (var1.hasNext())
             {
-                if (!var1.hasNext())
+                EntityPlayer var2 = (EntityPlayer)var1.next();
+
+                if (!var2.isPlayerFullyAsleep())
                 {
-                    return true;
+                    return false;
                 }
-
-                var2 = (EntityPlayer)var1.next();
             }
-            while (var2.isPlayerFullyAsleep());
 
-            return false;
+            return true;
         }
         else
         {
@@ -267,7 +276,7 @@ public class WorldServer extends World
             }
 
             this.theProfiler.endStartSection("iceandsnow");
-            int var13;
+            int var12;
 
             if (this.rand.nextInt(16) == 0)
             {
@@ -289,45 +298,45 @@ public class WorldServer extends World
 
                 if (this.isRaining())
                 {
-                    BiomeGenBase var12 = this.getBiomeGenForCoords(var9 + var5, var10 + var6);
+                    BiomeGenBase var13 = this.getBiomeGenForCoords(var9 + var5, var10 + var6);
 
-                    if (var12.canSpawnLightningBolt())
+                    if (var13.canSpawnLightningBolt())
                     {
-                        var13 = this.getBlockId(var9 + var5, var11 - 1, var10 + var6);
+                        var12 = this.getBlockId(var9 + var5, var11 - 1, var10 + var6);
 
-                        if (var13 != 0)
+                        if (var12 != 0)
                         {
-                            Block.blocksList[var13].fillWithRain(this, var9 + var5, var11 - 1, var10 + var6);
+                            Block.blocksList[var12].fillWithRain(this, var9 + var5, var11 - 1, var10 + var6);
                         }
                     }
                 }
             }
 
             this.theProfiler.endStartSection("tickTiles");
-            ExtendedBlockStorage[] var19 = var7.getBlockStorageArray();
-            var9 = var19.length;
+            ExtendedBlockStorage[] var21 = var7.getBlockStorageArray();
+            var9 = var21.length;
 
             for (var10 = 0; var10 < var9; ++var10)
             {
-                ExtendedBlockStorage var21 = var19[var10];
+                ExtendedBlockStorage var14 = var21[var10];
 
-                if (var21 != null && var21.getNeedsRandomTick())
+                if (var14 != null && var14.getNeedsRandomTick())
                 {
-                    for (int var20 = 0; var20 < 3; ++var20)
+                    for (int var15 = 0; var15 < 3; ++var15)
                     {
                         this.updateLCG = this.updateLCG * 3 + 1013904223;
-                        var13 = this.updateLCG >> 2;
-                        int var14 = var13 & 15;
-                        int var15 = var13 >> 8 & 15;
-                        int var16 = var13 >> 16 & 15;
-                        int var17 = var21.getExtBlockID(var14, var16, var15);
+                        var12 = this.updateLCG >> 2;
+                        int var16 = var12 & 15;
+                        int var17 = var12 >> 8 & 15;
+                        int var18 = var12 >> 16 & 15;
+                        int var19 = var14.getExtBlockID(var16, var18, var17);
                         ++var2;
-                        Block var18 = Block.blocksList[var17];
+                        Block var20 = Block.blocksList[var19];
 
-                        if (var18 != null && var18.getTickRandomly())
+                        if (var20 != null && var20.getTickRandomly())
                         {
                             ++var1;
-                            var18.updateTick(this, var14 + var5, var16 + var21.getYLocation(), var15 + var6, this.rand);
+                            var20.updateTick(this, var16 + var5, var18 + var14.getYLocation(), var17 + var6, this.rand);
                         }
                     }
                 }
@@ -464,20 +473,20 @@ public class WorldServer extends World
             }
 
             this.theProfiler.startSection("cleaning");
-            NextTickListEntry var4;
+            NextTickListEntry var3;
 
-            for (int var3 = 0; var3 < var2; ++var3)
+            for (int var4 = 0; var4 < var2; ++var4)
             {
-                var4 = (NextTickListEntry)this.pendingTickListEntriesTreeSet.first();
+                var3 = (NextTickListEntry)this.pendingTickListEntriesTreeSet.first();
 
-                if (!par1 && var4.scheduledTime > this.worldInfo.getWorldTotalTime())
+                if (!par1 && var3.scheduledTime > this.worldInfo.getWorldTotalTime())
                 {
                     break;
                 }
 
-                this.pendingTickListEntriesTreeSet.remove(var4);
-                this.pendingTickListEntriesHashSet.remove(var4);
-                this.pendingTickListEntriesThisTick.add(var4);
+                this.pendingTickListEntriesTreeSet.remove(var3);
+                this.pendingTickListEntriesHashSet.remove(var3);
+                this.pendingTickListEntriesThisTick.add(var3);
             }
 
             this.theProfiler.endSection();
@@ -486,19 +495,19 @@ public class WorldServer extends World
 
             while (var14.hasNext())
             {
-                var4 = (NextTickListEntry)var14.next();
+                var3 = (NextTickListEntry)var14.next();
                 var14.remove();
                 byte var5 = 0;
 
-                if (this.checkChunksExist(var4.xCoord - var5, var4.yCoord - var5, var4.zCoord - var5, var4.xCoord + var5, var4.yCoord + var5, var4.zCoord + var5))
+                if (this.checkChunksExist(var3.xCoord - var5, var3.yCoord - var5, var3.zCoord - var5, var3.xCoord + var5, var3.yCoord + var5, var3.zCoord + var5))
                 {
-                    int var6 = this.getBlockId(var4.xCoord, var4.yCoord, var4.zCoord);
+                    int var6 = this.getBlockId(var3.xCoord, var3.yCoord, var3.zCoord);
 
-                    if (var6 > 0 && Block.isAssociatedBlockID(var6, var4.blockID))
+                    if (var6 > 0 && Block.isAssociatedBlockID(var6, var3.blockID))
                     {
                         try
                         {
-                            Block.blocksList[var6].updateTick(this, var4.xCoord, var4.yCoord, var4.zCoord, this.rand);
+                            Block.blocksList[var6].updateTick(this, var3.xCoord, var3.yCoord, var3.zCoord, this.rand);
                         }
                         catch (Throwable var13)
                         {
@@ -508,21 +517,21 @@ public class WorldServer extends World
 
                             try
                             {
-                                var10 = this.getBlockMetadata(var4.xCoord, var4.yCoord, var4.zCoord);
+                                var10 = this.getBlockMetadata(var3.xCoord, var3.yCoord, var3.zCoord);
                             }
                             catch (Throwable var12)
                             {
                                 var10 = -1;
                             }
 
-                            CrashReportCategory.func_85068_a(var9, var4.xCoord, var4.yCoord, var4.zCoord, var6, var10);
+                            CrashReportCategory.func_85068_a(var9, var3.xCoord, var3.yCoord, var3.zCoord, var6, var10);
                             throw new ReportedException(var8);
                         }
                     }
                 }
                 else
                 {
-                    this.scheduleBlockUpdate(var4.xCoord, var4.yCoord, var4.zCoord, var4.blockID, 0);
+                    this.scheduleBlockUpdate(var3.xCoord, var3.yCoord, var3.zCoord, var3.blockID, 0);
                 }
             }
 
@@ -887,19 +896,18 @@ public class WorldServer extends World
     {
         BlockEventData var7 = new BlockEventData(par1, par2, par3, par4, par5, par6);
         Iterator var8 = this.blockEventCache[this.blockEventCacheIndex].iterator();
-        BlockEventData var9;
 
-        do
+        while (var8.hasNext())
         {
-            if (!var8.hasNext())
+            BlockEventData var9 = (BlockEventData)var8.next();
+
+            if (var9.equals(var7))
             {
-                this.blockEventCache[this.blockEventCacheIndex].add(var7);
                 return;
             }
-
-            var9 = (BlockEventData)var8.next();
         }
-        while (!var9.equals(var7));
+
+        this.blockEventCache[this.blockEventCacheIndex].add(var7);
     }
 
     /**

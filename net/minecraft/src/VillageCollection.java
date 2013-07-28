@@ -16,6 +16,7 @@ public class VillageCollection extends WorldSavedData
     private final List newDoors = new ArrayList();
     private final List villageList = new ArrayList();
     private int tickCounter;
+    private boolean shouldUpdateKaboVillageMarker = false;
 
     public VillageCollection(String par1Str)
     {
@@ -47,19 +48,13 @@ public class VillageCollection extends WorldSavedData
      */
     public void addVillagerPosition(int par1, int par2, int par3)
     {
-        if (this.villagerPositionsList.size() <= 64)
+        if (this.villagerPositionsList.size() <= 64 && !this.isVillagerPositionPresent(par1, par2, par3))
         {
-            if (!this.isVillagerPositionPresent(par1, par2, par3))
-            {
-                this.villagerPositionsList.add(new ChunkCoordinates(par1, par2, par3));
-            }
+            this.villagerPositionsList.add(new ChunkCoordinates(par1, par2, par3));
         }
     }
 
-    /**
-     * Runs a single tick for the village collection
-     */
-    public void tick()
+    public void tick(KaboVillageMarkerServer villageMarkerServer)
     {
         ++this.tickCounter;
         Iterator var1 = this.villageList.iterator();
@@ -67,7 +62,7 @@ public class VillageCollection extends WorldSavedData
         while (var1.hasNext())
         {
             Village var2 = (Village)var1.next();
-            var2.tick(this.tickCounter);
+            var2.tick(this.tickCounter, villageMarkerServer);
         }
 
         this.removeAnnihilatedVillages();
@@ -77,6 +72,12 @@ public class VillageCollection extends WorldSavedData
         if (this.tickCounter % 400 == 0)
         {
             this.markDirty();
+        }
+
+        if (this.shouldUpdateKaboVillageMarker)
+        {
+            villageMarkerServer.flagForUpdate();
+            this.shouldUpdateKaboVillageMarker = false;
         }
     }
 
@@ -92,6 +93,7 @@ public class VillageCollection extends WorldSavedData
             {
                 var1.remove();
                 this.markDirty();
+                this.shouldUpdateKaboVillageMarker = true;
             }
         }
     }
@@ -154,9 +156,11 @@ public class VillageCollection extends WorldSavedData
 
             while (true)
             {
+                Village var5;
+
                 if (var4.hasNext())
                 {
-                    Village var5 = (Village)var4.next();
+                    var5 = (Village)var4.next();
                     int var6 = (int)var5.getCenter().getDistanceSquared(var2.posX, var2.posY, var2.posZ);
                     int var7 = 32 + var5.getVillageRadius();
 
@@ -167,14 +171,16 @@ public class VillageCollection extends WorldSavedData
 
                     var5.addVillageDoorInfo(var2);
                     var3 = true;
+                    this.shouldUpdateKaboVillageMarker = true;
                 }
 
                 if (!var3)
                 {
-                    Village var8 = new Village(this.worldObj);
-                    var8.addVillageDoorInfo(var2);
-                    this.villageList.add(var8);
+                    var5 = new Village(this.worldObj);
+                    var5.addVillageDoorInfo(var2);
+                    this.villageList.add(var5);
                     this.markDirty();
+                    this.shouldUpdateKaboVillageMarker = true;
                 }
 
                 ++var1;
@@ -218,35 +224,31 @@ public class VillageCollection extends WorldSavedData
     private VillageDoorInfo getVillageDoorAt(int par1, int par2, int par3)
     {
         Iterator var4 = this.newDoors.iterator();
-        VillageDoorInfo var5;
 
-        do
+        while (var4.hasNext())
         {
-            if (!var4.hasNext())
+            VillageDoorInfo var5 = (VillageDoorInfo)var4.next();
+
+            if (var5.posX == par1 && var5.posZ == par3 && Math.abs(var5.posY - par2) <= 1)
             {
-                var4 = this.villageList.iterator();
-                VillageDoorInfo var6;
+                return var5;
+            }
+        }
 
-                do
-                {
-                    if (!var4.hasNext())
-                    {
-                        return null;
-                    }
+        var4 = this.villageList.iterator();
 
-                    Village var7 = (Village)var4.next();
-                    var6 = var7.getVillageDoorAt(par1, par2, par3);
-                }
-                while (var6 == null);
+        while (var4.hasNext())
+        {
+            Village var7 = (Village)var4.next();
+            VillageDoorInfo var6 = var7.getVillageDoorAt(par1, par2, par3);
 
+            if (var6 != null)
+            {
                 return var6;
             }
-
-            var5 = (VillageDoorInfo)var4.next();
         }
-        while (var5.posX != par1 || var5.posZ != par3 || Math.abs(var5.posY - par2) > 1);
 
-        return var5;
+        return null;
     }
 
     private void addDoorToNewListIfAppropriate(int par1, int par2, int par3)
@@ -278,6 +280,7 @@ public class VillageCollection extends WorldSavedData
             if (var5 != 0)
             {
                 this.newDoors.add(new VillageDoorInfo(par1, par2, par3, 0, var5 > 0 ? -2 : 2, this.tickCounter));
+                this.shouldUpdateKaboVillageMarker = true;
             }
         }
         else
@@ -303,6 +306,7 @@ public class VillageCollection extends WorldSavedData
             if (var5 != 0)
             {
                 this.newDoors.add(new VillageDoorInfo(par1, par2, par3, var5 > 0 ? -2 : 2, 0, this.tickCounter));
+                this.shouldUpdateKaboVillageMarker = true;
             }
         }
     }

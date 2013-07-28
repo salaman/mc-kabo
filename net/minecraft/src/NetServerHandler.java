@@ -137,11 +137,13 @@ public class NetServerHandler extends NetHandler
                 double var5;
                 double var7;
                 double var9;
+                float var11;
+                float var12;
 
                 if (this.playerEntity.ridingEntity != null)
                 {
-                    float var34 = this.playerEntity.rotationYaw;
-                    float var4 = this.playerEntity.rotationPitch;
+                    var11 = this.playerEntity.rotationYaw;
+                    var12 = this.playerEntity.rotationPitch;
                     this.playerEntity.ridingEntity.updateRiderPosition();
                     var5 = this.playerEntity.posX;
                     var7 = this.playerEntity.posY;
@@ -149,14 +151,14 @@ public class NetServerHandler extends NetHandler
 
                     if (par1Packet10Flying.rotating)
                     {
-                        var34 = par1Packet10Flying.yaw;
-                        var4 = par1Packet10Flying.pitch;
+                        var11 = par1Packet10Flying.yaw;
+                        var12 = par1Packet10Flying.pitch;
                     }
 
                     this.playerEntity.onGround = par1Packet10Flying.onGround;
                     this.playerEntity.onUpdateEntity();
                     this.playerEntity.ySize = 0.0F;
-                    this.playerEntity.setPositionAndRotation(var5, var7, var9, var34, var4);
+                    this.playerEntity.setPositionAndRotation(var5, var7, var9, var11, var12);
 
                     if (this.playerEntity.ridingEntity != null)
                     {
@@ -191,8 +193,8 @@ public class NetServerHandler extends NetHandler
                 var5 = this.playerEntity.posX;
                 var7 = this.playerEntity.posY;
                 var9 = this.playerEntity.posZ;
-                float var11 = this.playerEntity.rotationYaw;
-                float var12 = this.playerEntity.rotationPitch;
+                var11 = this.playerEntity.rotationYaw;
+                var12 = this.playerEntity.rotationPitch;
 
                 if (par1Packet10Flying.moving && par1Packet10Flying.yPosition == -999.0D && par1Packet10Flying.stance == -999.0D)
                 {
@@ -913,43 +915,43 @@ public class NetServerHandler extends NetHandler
                 }
             }
 
-            int var6;
+            int var5;
             int var8;
 
-            for (var8 = 0; var8 < 4; ++var8)
+            for (var5 = 0; var5 < 4; ++var5)
             {
-                boolean var5 = true;
+                boolean var6 = true;
 
-                if (par1Packet130UpdateSign.signLines[var8].length() > 15)
+                if (par1Packet130UpdateSign.signLines[var5].length() > 15)
                 {
-                    var5 = false;
+                    var6 = false;
                 }
                 else
                 {
-                    for (var6 = 0; var6 < par1Packet130UpdateSign.signLines[var8].length(); ++var6)
+                    for (var8 = 0; var8 < par1Packet130UpdateSign.signLines[var5].length(); ++var8)
                     {
-                        if (ChatAllowedCharacters.allowedCharacters.indexOf(par1Packet130UpdateSign.signLines[var8].charAt(var6)) < 0)
+                        if (ChatAllowedCharacters.allowedCharacters.indexOf(par1Packet130UpdateSign.signLines[var5].charAt(var8)) < 0)
                         {
-                            var5 = false;
+                            var6 = false;
                         }
                     }
                 }
 
-                if (!var5)
+                if (!var6)
                 {
-                    par1Packet130UpdateSign.signLines[var8] = "!?";
+                    par1Packet130UpdateSign.signLines[var5] = "!?";
                 }
             }
 
             if (var3 instanceof TileEntitySign)
             {
-                var8 = par1Packet130UpdateSign.xPosition;
+                var5 = par1Packet130UpdateSign.xPosition;
                 int var9 = par1Packet130UpdateSign.yPosition;
-                var6 = par1Packet130UpdateSign.zPosition;
+                var8 = par1Packet130UpdateSign.zPosition;
                 TileEntitySign var7 = (TileEntitySign)var3;
                 System.arraycopy(par1Packet130UpdateSign.signLines, 0, var7.signText, 0, 4);
                 var7.onInventoryChanged();
-                var2.markBlockForUpdate(var8, var9, var6);
+                var2.markBlockForUpdate(var5, var9, var8);
             }
         }
     }
@@ -985,11 +987,11 @@ public class NetServerHandler extends NetHandler
     public void handleAutoComplete(Packet203AutoComplete par1Packet203AutoComplete)
     {
         StringBuilder var2 = new StringBuilder();
-        String var4;
+        String var3;
 
-        for (Iterator var3 = this.mcServer.getPossibleCompletions(this.playerEntity, par1Packet203AutoComplete.getText()).iterator(); var3.hasNext(); var2.append(var4))
+        for (Iterator var4 = this.mcServer.getPossibleCompletions(this.playerEntity, par1Packet203AutoComplete.getText()).iterator(); var4.hasNext(); var2.append(var3))
         {
-            var4 = (String)var3.next();
+            var3 = (String)var4.next();
 
             if (var2.length() > 0)
             {
@@ -1008,163 +1010,189 @@ public class NetServerHandler extends NetHandler
     public void handleCustomPayload(Packet250CustomPayload par1Packet250CustomPayload)
     {
         DataInputStream var2;
-        ItemStack var3;
-        ItemStack var4;
+        int var6;
 
-        if ("MC|BEdit".equals(par1Packet250CustomPayload.channel))
+        if ("KVM|Answer".equals(par1Packet250CustomPayload.channel))
         {
+            var2 = new DataInputStream(new ByteArrayInputStream(par1Packet250CustomPayload.data));
+
             try
             {
-                var2 = new DataInputStream(new ByteArrayInputStream(par1Packet250CustomPayload.data));
-                var3 = Packet.readItemStack(var2);
+                String var5 = "";
 
-                if (!ItemWritableBook.validBookTagPages(var3.getTagCompound()))
+                for (var6 = 24; var6 < par1Packet250CustomPayload.getPacketSize(); var6 += 2)
                 {
-                    throw new IOException("Invalid book tag!");
+                    var5 = var5 + var2.readChar();
                 }
 
-                var4 = this.playerEntity.inventory.getCurrentItem();
-
-                if (var3 != null && var3.itemID == Item.writableBook.itemID && var3.itemID == var4.itemID)
-                {
-                    var4.setTagInfo("pages", var3.getTagCompound().getTagList("pages"));
-                }
+                EntityPlayerMP var17 = this.mcServer.getConfigurationManager().getPlayerEntity(var5);
+                KaboVillageMarkerServer.addPlayerToList(var5, var17);
             }
-            catch (Exception var12)
+            catch (IOException var15)
             {
-                var12.printStackTrace();
-            }
-        }
-        else if ("MC|BSign".equals(par1Packet250CustomPayload.channel))
-        {
-            try
-            {
-                var2 = new DataInputStream(new ByteArrayInputStream(par1Packet250CustomPayload.data));
-                var3 = Packet.readItemStack(var2);
-
-                if (!ItemEditableBook.validBookTagContents(var3.getTagCompound()))
-                {
-                    throw new IOException("Invalid book tag!");
-                }
-
-                var4 = this.playerEntity.inventory.getCurrentItem();
-
-                if (var3 != null && var3.itemID == Item.writtenBook.itemID && var4.itemID == Item.writableBook.itemID)
-                {
-                    var4.setTagInfo("author", new NBTTagString("author", this.playerEntity.getCommandSenderName()));
-                    var4.setTagInfo("title", new NBTTagString("title", var3.getTagCompound().getString("title")));
-                    var4.setTagInfo("pages", var3.getTagCompound().getTagList("pages"));
-                    var4.itemID = Item.writtenBook.itemID;
-                }
-            }
-            catch (Exception var11)
-            {
-                var11.printStackTrace();
+                var15.printStackTrace();
             }
         }
         else
         {
-            int var14;
+            ItemStack var3;
+            ItemStack var4;
 
-            if ("MC|TrSel".equals(par1Packet250CustomPayload.channel))
+            if ("MC|BEdit".equals(par1Packet250CustomPayload.channel))
             {
                 try
                 {
                     var2 = new DataInputStream(new ByteArrayInputStream(par1Packet250CustomPayload.data));
-                    var14 = var2.readInt();
-                    Container var16 = this.playerEntity.openContainer;
+                    var3 = Packet.readItemStack(var2);
 
-                    if (var16 instanceof ContainerMerchant)
+                    if (!ItemWritableBook.validBookTagPages(var3.getTagCompound()))
                     {
-                        ((ContainerMerchant)var16).setCurrentRecipeIndex(var14);
+                        throw new IOException("Invalid book tag!");
+                    }
+
+                    var4 = this.playerEntity.inventory.getCurrentItem();
+
+                    if (var3 != null && var3.itemID == Item.writableBook.itemID && var3.itemID == var4.itemID)
+                    {
+                        var4.setTagInfo("pages", var3.getTagCompound().getTagList("pages"));
                     }
                 }
-                catch (Exception var10)
+                catch (Exception var14)
                 {
-                    var10.printStackTrace();
+                    var14.printStackTrace();
+                }
+            }
+            else if ("MC|BSign".equals(par1Packet250CustomPayload.channel))
+            {
+                try
+                {
+                    var2 = new DataInputStream(new ByteArrayInputStream(par1Packet250CustomPayload.data));
+                    var3 = Packet.readItemStack(var2);
+
+                    if (!ItemEditableBook.validBookTagContents(var3.getTagCompound()))
+                    {
+                        throw new IOException("Invalid book tag!");
+                    }
+
+                    var4 = this.playerEntity.inventory.getCurrentItem();
+
+                    if (var3 != null && var3.itemID == Item.writtenBook.itemID && var4.itemID == Item.writableBook.itemID)
+                    {
+                        var4.setTagInfo("author", new NBTTagString("author", this.playerEntity.getCommandSenderName()));
+                        var4.setTagInfo("title", new NBTTagString("title", var3.getTagCompound().getString("title")));
+                        var4.setTagInfo("pages", var3.getTagCompound().getTagList("pages"));
+                        var4.itemID = Item.writtenBook.itemID;
+                    }
+                }
+                catch (Exception var13)
+                {
+                    var13.printStackTrace();
                 }
             }
             else
             {
-                int var18;
+                int var16;
 
-                if ("MC|AdvCdm".equals(par1Packet250CustomPayload.channel))
+                if ("MC|TrSel".equals(par1Packet250CustomPayload.channel))
                 {
-                    if (!this.mcServer.isCommandBlockEnabled())
+                    try
                     {
-                        this.playerEntity.sendChatToPlayer(ChatMessageComponent.func_111077_e("advMode.notEnabled"));
-                    }
-                    else if (this.playerEntity.canCommandSenderUseCommand(2, "") && this.playerEntity.capabilities.isCreativeMode)
-                    {
-                        try
-                        {
-                            var2 = new DataInputStream(new ByteArrayInputStream(par1Packet250CustomPayload.data));
-                            var14 = var2.readInt();
-                            var18 = var2.readInt();
-                            int var5 = var2.readInt();
-                            String var6 = Packet.readString(var2, 256);
-                            TileEntity var7 = this.playerEntity.worldObj.getBlockTileEntity(var14, var18, var5);
+                        var2 = new DataInputStream(new ByteArrayInputStream(par1Packet250CustomPayload.data));
+                        var16 = var2.readInt();
+                        Container var19 = this.playerEntity.openContainer;
 
-                            if (var7 != null && var7 instanceof TileEntityCommandBlock)
-                            {
-                                ((TileEntityCommandBlock)var7).setCommand(var6);
-                                this.playerEntity.worldObj.markBlockForUpdate(var14, var18, var5);
-                                this.playerEntity.sendChatToPlayer(ChatMessageComponent.func_111082_b("advMode.setCommand.success", new Object[] {var6}));
-                            }
-                        }
-                        catch (Exception var9)
+                        if (var19 instanceof ContainerMerchant)
                         {
-                            var9.printStackTrace();
+                            ((ContainerMerchant)var19).setCurrentRecipeIndex(var16);
                         }
                     }
-                    else
+                    catch (Exception var12)
                     {
-                        this.playerEntity.sendChatToPlayer(ChatMessageComponent.func_111077_e("advMode.notAllowed"));
+                        var12.printStackTrace();
                     }
                 }
-                else if ("MC|Beacon".equals(par1Packet250CustomPayload.channel))
+                else
                 {
-                    if (this.playerEntity.openContainer instanceof ContainerBeacon)
-                    {
-                        try
-                        {
-                            var2 = new DataInputStream(new ByteArrayInputStream(par1Packet250CustomPayload.data));
-                            var14 = var2.readInt();
-                            var18 = var2.readInt();
-                            ContainerBeacon var17 = (ContainerBeacon)this.playerEntity.openContainer;
-                            Slot var19 = var17.getSlot(0);
+                    String var8;
 
-                            if (var19.getHasStack())
+                    if ("MC|AdvCdm".equals(par1Packet250CustomPayload.channel))
+                    {
+                        if (!this.mcServer.isCommandBlockEnabled())
+                        {
+                            this.playerEntity.sendChatToPlayer(ChatMessageComponent.func_111077_e("advMode.notEnabled"));
+                        }
+                        else if (this.playerEntity.canCommandSenderUseCommand(2, "") && this.playerEntity.capabilities.isCreativeMode)
+                        {
+                            try
                             {
-                                var19.decrStackSize(1);
-                                TileEntityBeacon var20 = var17.getBeacon();
-                                var20.setPrimaryEffect(var14);
-                                var20.setSecondaryEffect(var18);
-                                var20.onInventoryChanged();
+                                var2 = new DataInputStream(new ByteArrayInputStream(par1Packet250CustomPayload.data));
+                                var16 = var2.readInt();
+                                var6 = var2.readInt();
+                                int var7 = var2.readInt();
+                                var8 = Packet.readString(var2, 256);
+                                TileEntity var9 = this.playerEntity.worldObj.getBlockTileEntity(var16, var6, var7);
+
+                                if (var9 != null && var9 instanceof TileEntityCommandBlock)
+                                {
+                                    ((TileEntityCommandBlock)var9).setCommand(var8);
+                                    this.playerEntity.worldObj.markBlockForUpdate(var16, var6, var7);
+                                    this.playerEntity.sendChatToPlayer(ChatMessageComponent.func_111082_b("advMode.setCommand.success", new Object[] {var8}));
+                                }
+                            }
+                            catch (Exception var11)
+                            {
+                                var11.printStackTrace();
                             }
                         }
-                        catch (Exception var8)
+                        else
                         {
-                            var8.printStackTrace();
+                            this.playerEntity.sendChatToPlayer(ChatMessageComponent.func_111077_e("advMode.notAllowed"));
                         }
                     }
-                }
-                else if ("MC|ItemName".equals(par1Packet250CustomPayload.channel) && this.playerEntity.openContainer instanceof ContainerRepair)
-                {
-                    ContainerRepair var13 = (ContainerRepair)this.playerEntity.openContainer;
-
-                    if (par1Packet250CustomPayload.data != null && par1Packet250CustomPayload.data.length >= 1)
+                    else if ("MC|Beacon".equals(par1Packet250CustomPayload.channel))
                     {
-                        String var15 = ChatAllowedCharacters.filerAllowedCharacters(new String(par1Packet250CustomPayload.data));
-
-                        if (var15.length() <= 30)
+                        if (this.playerEntity.openContainer instanceof ContainerBeacon)
                         {
-                            var13.updateItemName(var15);
+                            try
+                            {
+                                var2 = new DataInputStream(new ByteArrayInputStream(par1Packet250CustomPayload.data));
+                                var16 = var2.readInt();
+                                var6 = var2.readInt();
+                                ContainerBeacon var18 = (ContainerBeacon)this.playerEntity.openContainer;
+                                Slot var21 = var18.getSlot(0);
+
+                                if (var21.getHasStack())
+                                {
+                                    var21.decrStackSize(1);
+                                    TileEntityBeacon var22 = var18.getBeacon();
+                                    var22.setPrimaryEffect(var16);
+                                    var22.setSecondaryEffect(var6);
+                                    var22.onInventoryChanged();
+                                }
+                            }
+                            catch (Exception var10)
+                            {
+                                var10.printStackTrace();
+                            }
                         }
                     }
-                    else
+                    else if ("MC|ItemName".equals(par1Packet250CustomPayload.channel) && this.playerEntity.openContainer instanceof ContainerRepair)
                     {
-                        var13.updateItemName("");
+                        ContainerRepair var20 = (ContainerRepair)this.playerEntity.openContainer;
+
+                        if (par1Packet250CustomPayload.data != null && par1Packet250CustomPayload.data.length >= 1)
+                        {
+                            var8 = ChatAllowedCharacters.filerAllowedCharacters(new String(par1Packet250CustomPayload.data));
+
+                            if (var8.length() <= 30)
+                            {
+                                var20.updateItemName(var8);
+                            }
+                        }
+                        else
+                        {
+                            var20.updateItemName("");
+                        }
                     }
                 }
             }

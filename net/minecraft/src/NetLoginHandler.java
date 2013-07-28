@@ -1,5 +1,7 @@
 package net.minecraft.src;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
@@ -178,6 +180,23 @@ public class NetLoginHandler extends NetHandler
             if (var2 != null)
             {
                 this.mcServer.getConfigurationManager().initializeConnectionToPlayer(this.myTCPConnection, var2);
+
+                try
+                {
+                    ByteArrayOutputStream var3 = new ByteArrayOutputStream();
+                    DataOutputStream var4 = new DataOutputStream(var3);
+                    var4.writeBytes("");
+                    Packet250CustomPayload var5 = new Packet250CustomPayload("KVM|Poll", var3.toByteArray());
+
+                    if (var5 != null)
+                    {
+                        var2.playerNetServerHandler.sendPacket(var5);
+                    }
+                }
+                catch (IOException var6)
+                {
+                    var6.printStackTrace();
+                }
             }
         }
 
@@ -207,11 +226,11 @@ public class NetLoginHandler extends NetHandler
             else
             {
                 List var4 = Arrays.asList(new Serializable[] {Integer.valueOf(1), Integer.valueOf(74), this.mcServer.getMinecraftVersion(), this.mcServer.getMOTD(), Integer.valueOf(var2.getCurrentPlayerCount()), Integer.valueOf(var2.getMaxPlayers())});
-                Object var6;
+                Object var5;
 
-                for (Iterator var5 = var4.iterator(); var5.hasNext(); var3 = var3 + var6.toString().replaceAll("\u0000", ""))
+                for (Iterator var6 = var4.iterator(); var6.hasNext(); var3 = var3 + var5.toString().replaceAll("\u0000", ""))
                 {
-                    var6 = var5.next();
+                    var5 = var6.next();
 
                     if (var3 == null)
                     {

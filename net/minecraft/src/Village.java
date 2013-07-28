@@ -32,6 +32,7 @@ public class Village
     private TreeMap playerReputation = new TreeMap();
     private List villageAgressors = new ArrayList();
     private int numIronGolems;
+    private boolean shouldUpdateKaboVillageMarker = false;
 
     public Village() {}
 
@@ -45,10 +46,7 @@ public class Village
         this.worldObj = par1World;
     }
 
-    /**
-     * Called periodically by VillageCollection
-     */
-    public void tick(int par1)
+    public void tick(int par1, KaboVillageMarkerServer villageMarkerServer)
     {
         this.tickCounter = par1;
         this.removeDeadAndOutOfRangeDoors();
@@ -77,6 +75,12 @@ public class Village
                 this.worldObj.spawnEntityInWorld(var4);
                 ++this.numIronGolems;
             }
+        }
+
+        if (this.shouldUpdateKaboVillageMarker)
+        {
+            villageMarkerServer.flagForUpdate();
+            this.shouldUpdateKaboVillageMarker = false;
         }
     }
 
@@ -294,21 +298,19 @@ public class Village
     public void addOrRenewAgressor(EntityLivingBase par1EntityLivingBase)
     {
         Iterator var2 = this.villageAgressors.iterator();
-        VillageAgressor var3;
 
-        do
+        while (var2.hasNext())
         {
-            if (!var2.hasNext())
+            VillageAgressor var3 = (VillageAgressor)var2.next();
+
+            if (var3.agressor == par1EntityLivingBase)
             {
-                this.villageAgressors.add(new VillageAgressor(this, par1EntityLivingBase, this.tickCounter));
+                var3.agressionTime = this.tickCounter;
                 return;
             }
-
-            var3 = (VillageAgressor)var2.next();
         }
-        while (var3.agressor != par1EntityLivingBase);
 
-        var3.agressionTime = this.tickCounter;
+        this.villageAgressors.add(new VillageAgressor(this, par1EntityLivingBase, this.tickCounter));
     }
 
     public EntityLivingBase findNearestVillageAggressor(EntityLivingBase par1EntityLivingBase)
@@ -405,6 +407,7 @@ public class Village
         if (var1)
         {
             this.updateVillageRadiusAndCenter();
+            this.shouldUpdateKaboVillageMarker = true;
         }
     }
 
@@ -427,11 +430,11 @@ public class Village
         {
             this.center.set(this.centerHelper.posX / var1, this.centerHelper.posY / var1, this.centerHelper.posZ / var1);
             int var2 = 0;
-            VillageDoorInfo var4;
+            VillageDoorInfo var3;
 
-            for (Iterator var3 = this.villageDoorInfoList.iterator(); var3.hasNext(); var2 = Math.max(var4.getDistanceSquared(this.center.posX, this.center.posY, this.center.posZ), var2))
+            for (Iterator var4 = this.villageDoorInfoList.iterator(); var4.hasNext(); var2 = Math.max(var3.getDistanceSquared(this.center.posX, this.center.posY, this.center.posZ), var2))
             {
-                var4 = (VillageDoorInfo)var3.next();
+                var3 = (VillageDoorInfo)var4.next();
             }
 
             this.villageRadius = Math.max(32, (int)Math.sqrt((double)var2) + 1);
@@ -535,19 +538,19 @@ public class Village
         }
 
         par1NBTTagCompound.setTag("Doors", var2);
-        NBTTagList var7 = new NBTTagList("Players");
-        Iterator var8 = this.playerReputation.keySet().iterator();
+        NBTTagList var8 = new NBTTagList("Players");
+        Iterator var9 = this.playerReputation.keySet().iterator();
 
-        while (var8.hasNext())
+        while (var9.hasNext())
         {
-            String var9 = (String)var8.next();
-            NBTTagCompound var6 = new NBTTagCompound(var9);
-            var6.setString("Name", var9);
-            var6.setInteger("S", ((Integer)this.playerReputation.get(var9)).intValue());
-            var7.appendTag(var6);
+            String var6 = (String)var9.next();
+            NBTTagCompound var7 = new NBTTagCompound(var6);
+            var7.setString("Name", var6);
+            var7.setInteger("S", ((Integer)this.playerReputation.get(var6)).intValue());
+            var8.appendTag(var7);
         }
 
-        par1NBTTagCompound.setTag("Players", var7);
+        par1NBTTagCompound.setTag("Players", var8);
     }
 
     /**

@@ -131,22 +131,22 @@ public abstract class ServerConfigurationManager
             par2EntityPlayerMP.playerNetServerHandler.sendPacket(new Packet209SetPlayerTeam(var5, 0));
         }
 
-        for (int var9 = 0; var9 < 3; ++var9)
+        for (int var10 = 0; var10 < 3; ++var10)
         {
-            ScoreObjective var10 = par1ServerScoreboard.func_96539_a(var9);
+            ScoreObjective var6 = par1ServerScoreboard.func_96539_a(var10);
 
-            if (var10 != null && !var3.contains(var10))
+            if (var6 != null && !var3.contains(var6))
             {
-                List var6 = par1ServerScoreboard.func_96550_d(var10);
-                Iterator var7 = var6.iterator();
+                List var7 = par1ServerScoreboard.func_96550_d(var6);
+                Iterator var8 = var7.iterator();
 
-                while (var7.hasNext())
+                while (var8.hasNext())
                 {
-                    Packet var8 = (Packet)var7.next();
-                    par2EntityPlayerMP.playerNetServerHandler.sendPacket(var8);
+                    Packet var9 = (Packet)var8.next();
+                    par2EntityPlayerMP.playerNetServerHandler.sendPacket(var9);
                 }
 
-                var3.add(var10);
+                var3.add(var6);
             }
         }
     }
@@ -251,6 +251,7 @@ public abstract class ServerConfigurationManager
         var2.getPlayerManager().removePlayer(par1EntityPlayerMP);
         this.playerEntityList.remove(par1EntityPlayerMP);
         this.sendPacketToAllPlayers(new Packet201PlayerInfo(par1EntityPlayerMP.getCommandSenderName(), false, 9999));
+        KaboVillageMarkerServer.removePlayerFromList(par1EntityPlayerMP.username);
     }
 
     /**
@@ -305,38 +306,38 @@ public abstract class ServerConfigurationManager
     public EntityPlayerMP createPlayerForUser(String par1Str)
     {
         ArrayList var2 = new ArrayList();
-        EntityPlayerMP var4;
+        EntityPlayerMP var3;
 
-        for (int var3 = 0; var3 < this.playerEntityList.size(); ++var3)
+        for (int var4 = 0; var4 < this.playerEntityList.size(); ++var4)
         {
-            var4 = (EntityPlayerMP)this.playerEntityList.get(var3);
+            var3 = (EntityPlayerMP)this.playerEntityList.get(var4);
 
-            if (var4.getCommandSenderName().equalsIgnoreCase(par1Str))
+            if (var3.getCommandSenderName().equalsIgnoreCase(par1Str))
             {
-                var2.add(var4);
+                var2.add(var3);
             }
         }
 
-        Iterator var5 = var2.iterator();
+        Iterator var6 = var2.iterator();
 
-        while (var5.hasNext())
+        while (var6.hasNext())
         {
-            var4 = (EntityPlayerMP)var5.next();
-            var4.playerNetServerHandler.kickPlayer("You logged in from another location");
+            var3 = (EntityPlayerMP)var6.next();
+            var3.playerNetServerHandler.kickPlayer("You logged in from another location");
         }
 
-        Object var6;
+        Object var5;
 
         if (this.mcServer.isDemo())
         {
-            var6 = new DemoWorldManager(this.mcServer.worldServerForDimension(0));
+            var5 = new DemoWorldManager(this.mcServer.worldServerForDimension(0));
         }
         else
         {
-            var6 = new ItemInWorldManager(this.mcServer.worldServerForDimension(0));
+            var5 = new ItemInWorldManager(this.mcServer.worldServerForDimension(0));
         }
 
-        return new EntityPlayerMP(this.mcServer, this.mcServer.worldServerForDimension(0), par1Str, (ItemInWorldManager)var6);
+        return new EntityPlayerMP(this.mcServer, this.mcServer.worldServerForDimension(0), par1Str, (ItemInWorldManager)var5);
     }
 
     /**
@@ -644,20 +645,18 @@ public abstract class ServerConfigurationManager
     public EntityPlayerMP getPlayerEntity(String par1Str)
     {
         Iterator var2 = this.playerEntityList.iterator();
-        EntityPlayerMP var3;
 
-        do
+        while (var2.hasNext())
         {
-            if (!var2.hasNext())
+            EntityPlayerMP var3 = (EntityPlayerMP)var2.next();
+
+            if (var3.getCommandSenderName().equalsIgnoreCase(par1Str))
             {
-                return null;
+                return var3;
             }
-
-            var3 = (EntityPlayerMP)var2.next();
         }
-        while (!var3.getCommandSenderName().equalsIgnoreCase(par1Str));
 
-        return var3;
+        return null;
     }
 
     /**
@@ -748,8 +747,8 @@ public abstract class ServerConfigurationManager
         {
             Iterator var3 = par2Map.entrySet().iterator();
             Entry var4;
-            boolean var6;
-            int var10;
+            boolean var5;
+            int var6;
 
             do
             {
@@ -759,32 +758,32 @@ public abstract class ServerConfigurationManager
                 }
 
                 var4 = (Entry)var3.next();
-                String var5 = (String)var4.getKey();
-                var6 = false;
+                String var7 = (String)var4.getKey();
+                var5 = false;
 
-                if (var5.endsWith("_min") && var5.length() > 4)
+                if (var7.endsWith("_min") && var7.length() > 4)
                 {
-                    var6 = true;
-                    var5 = var5.substring(0, var5.length() - 4);
+                    var5 = true;
+                    var7 = var7.substring(0, var7.length() - 4);
                 }
 
-                Scoreboard var7 = par1EntityPlayer.getWorldScoreboard();
-                ScoreObjective var8 = var7.getObjective(var5);
+                Scoreboard var8 = par1EntityPlayer.getWorldScoreboard();
+                ScoreObjective var9 = var8.getObjective(var7);
 
-                if (var8 == null)
+                if (var9 == null)
                 {
                     return false;
                 }
 
-                Score var9 = par1EntityPlayer.getWorldScoreboard().func_96529_a(par1EntityPlayer.getEntityName(), var8);
-                var10 = var9.getScorePoints();
+                Score var10 = par1EntityPlayer.getWorldScoreboard().func_96529_a(par1EntityPlayer.getEntityName(), var9);
+                var6 = var10.getScorePoints();
 
-                if (var10 < ((Integer)var4.getValue()).intValue() && var6)
+                if (var6 < ((Integer)var4.getValue()).intValue() && var5)
                 {
                     return false;
                 }
             }
-            while (var10 <= ((Integer)var4.getValue()).intValue() || var6);
+            while (var6 <= ((Integer)var4.getValue()).intValue() || var5);
 
             return false;
         }
